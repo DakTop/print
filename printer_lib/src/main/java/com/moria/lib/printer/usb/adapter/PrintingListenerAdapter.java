@@ -1,7 +1,7 @@
-package com.moria.lib.printer.adapter;
+package com.moria.lib.printer.usb.adapter;
 
 
-import com.moria.lib.printer.interfaces.IPrintingListener;
+import com.moria.lib.printer.usb.interfaces.IPrintingListener;
 
 /**
  * Author  moria

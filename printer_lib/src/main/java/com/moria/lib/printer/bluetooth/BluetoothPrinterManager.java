@@ -1,10 +1,11 @@
 package com.moria.lib.printer.bluetooth;
 
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 
-import com.moria.lib.printer.PrintManager;
+import com.moria.lib.printer.usb.PrintManager;
 import com.moria.lib.printer.bean.DeviceModel;
 import com.moria.lib.printer.bluetooth.interfaces.BluetoothBondListener;
 import com.moria.lib.printer.bluetooth.interfaces.BluetoothConnectFinishListener;
@@ -65,16 +66,9 @@ public class BluetoothPrinterManager implements BluetoothScanListener, Bluetooth
         bluetoothService.openOrScanBluetooth();
     }
 
-    /**
-     * 蓝牙配对
-     */
-    public void bondDevice(DeviceModel device, BluetoothBondListener bondListener) {
-        this.bondListener = bondListener;
-        bluetoothService.bondDevice(device.getBluetoothDevice());
-    }
 
     @Override
-    public void  onFindDeviceListener(BluetoothDevice device) {
+    public void onFindDeviceListener(BluetoothDevice device) {
         //将扫描出来的蓝牙设备添加到集合
         if (device == null)
             return;
@@ -129,15 +123,116 @@ public class BluetoothPrinterManager implements BluetoothScanListener, Bluetooth
         return socket != null && socket.isConnected();
     }
 
+    public boolean isConnect(String macAddress) {
+        BluetoothSocket socket = connectDevice.get(macAddress);
+        return socket != null && socket.isConnected();
+    }
+
+    /**
+     * 蓝牙设备是否正在绑定
+     */
+    public boolean isBonding(BluetoothDevice device) {
+        return bluetoothService.isBonding(device);
+    }
+
+    /**
+     * 蓝牙设备是否已经绑定
+     */
+    public boolean isBonded(BluetoothDevice device) {
+        return bluetoothService.isBonded(device);
+    }
+
+    /**
+     * 蓝牙设备是否正在绑定
+     */
+    public boolean isBonding(String address) {
+        return isBonding(obtainDevice(address));
+    }
+
+    /**
+     * 蓝牙设备是否已经绑定
+     */
+    public boolean isBonded(String address) {
+        return isBonded(obtainDevice(address));
+    }
+
+    /**
+     * 蓝牙配对
+     */
+    public void bondDevice(BluetoothDevice device, BluetoothBondListener bondListener) {
+        this.bondListener = bondListener;
+        bluetoothService.bondDevice(device);
+    }
+
+    /**
+     * 蓝牙配对
+     */
+    public void bondDevice(String address, BluetoothBondListener bondListener) {
+        bondDevice(obtainDevice(address), bondListener);
+    }
+
+
+    /**
+     * 取消配对（取消配对成功与失败通过广播返回 也就是配对失败）
+     *
+     * @param device
+     */
+    public void cancelBondDevice(BluetoothDevice device, BluetoothBondListener bondListener) {
+        this.bondListener = bondListener;
+        closeConnectDevice(device);
+        bluetoothService.cancelBondDevice(device);
+    }
+
+    /**
+     * 取消配对（取消配对成功与失败通过广播返回 也就是配对失败）
+     */
+    public void cancelBondDevice(String address, BluetoothBondListener bondListener) {
+        cancelBondDevice(obtainDevice(address), bondListener);
+    }
+
+    /**
+     * 连接设备，回调监听方法是在子线程中进行的
+     *
+     * @param device
+     * @param connectListener
+     */
+    public void connectDevice(final BluetoothDevice device, final BluetoothConnectListener connectListener) {
+        bluetoothService.cancelDiscovery();
+        bluetoothService.connectDevice(device, new BluetoothConnectFinishListener() {
+            @Override
+            public void onFinishConnectListener(boolean isConnect, BluetoothSocket mSocket) {
+                connectDevice.put(device.getAddress(), mSocket);
+                connectListener.onFinishConnectListener(isConnect);
+            }
+        });
+    }
+
+    /**
+     * 连接设备，回调监听方法是在子线程中进行的
+     *
+     * @param macAddress
+     * @param connectListener
+     */
+    public void connectDevice(String macAddress, BluetoothConnectListener connectListener) {
+        connectDevice(obtainDevice(macAddress), connectListener);
+    }
+
+
     /**
      * 断开连接
      *
      * @param device
      */
-    public void closeConnectDevice(DeviceModel device) {
-        String key = device.getBluetoothDevice().getAddress();
-        BluetoothSocket socket = connectDevice.get(key);
-        connectDevice.remove(key);
+    public void closeConnectDevice(BluetoothDevice device) {
+        closeConnectDevice(device.getAddress());
+    }
+
+    /**
+     * 断开连接
+     */
+    public void closeConnectDevice(String macAddress) {
+        BluetoothSocket socket = connectDevice.get(macAddress);
+        connectDevice.remove(macAddress);
         if (socket != null) {
             try {
                 socket.close();
@@ -146,6 +241,7 @@ public class BluetoothPrinterManager implements BluetoothScanListener, Bluetooth
             }
         }
     }
+
 
     public void destroy() {
         for (final String key : connectDevice.keySet()) {
@@ -177,35 +273,17 @@ public class BluetoothPrinterManager implements BluetoothScanListener, Bluetooth
         return bondedDeviceList;
     }
 
-    /**
-     * 取消配对（取消配对成功与失败通过广播返回 也就是配对失败）
-     *
-     * @param device
-     */
-    public void cancelBondDevice(DeviceModel device, BluetoothBondListener bondListener) {
-        this.bondListener = bondListener;
-        closeConnectDevice(device);
-        bluetoothService.cancelBondDevice(device.getBluetoothDevice());
-    }
-
-    /**
-     * 连接设备，回调监听方法是在子线程中进行的
-     *
-     * @param device
-     * @param connectListener
-     */
-    public void connectDevice(final DeviceModel device, final BluetoothConnectListener connectListener) {
-        bluetoothService.cancelDiscovery();
-        bluetoothService.connectDevice(device.getBluetoothDevice(), new BluetoothConnectFinishListener() {
-            @Override
-            public void onFinishConnectListener(boolean isConnect, BluetoothSocket mSocket) {
-                connectDevice.put(device.getBluetoothDevice().getAddress(), mSocket);
-                connectListener.onFinishConnectListener(isConnect);
-            }
-        });
-    }
-
     private DeviceModel obtainBluetoothDevice(BluetoothDevice device) {
         return new DeviceModel(device);
     }
+
+    /**
+     * 生成设备
+     *
+     * @param macAddress
+     */
+    public BluetoothDevice obtainDevice(String macAddress) {
+        return bluetoothService.obtainDevice(macAddress);
+    }
+
 }

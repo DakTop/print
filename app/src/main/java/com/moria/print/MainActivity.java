@@ -4,6 +4,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -14,12 +16,14 @@ import com.moria.lib.printer.bluetooth.interfaces.BluetoothBondListener;
 import com.moria.lib.printer.bluetooth.interfaces.BluetoothConnectListener;
 import com.moria.lib.printer.bluetooth.interfaces.BluetoothScanListener;
 import com.moria.lib.printer.label.cmd.LabelCommand;
+import com.moria.lib.printer.network.NetPortPrintManger;
+import com.moria.lib.printer.network.interfaces.NetPortPrintListener;
 import com.moria.print.print.TicketPrint;
-import com.moria.lib.printer.PrintManager;
-import com.moria.lib.printer.adapter.PrintingListenerAdapter;
+import com.moria.lib.printer.usb.PrintManager;
+import com.moria.lib.printer.usb.adapter.PrintingListenerAdapter;
 import com.moria.lib.printer.bean.DeviceModel;
 import com.moria.lib.printer.label.template.LabelModel;
-import com.moria.lib.printer.interfaces.IUsbDeviceRefreshListener;
+import com.moria.lib.printer.usb.interfaces.IUsbDeviceRefreshListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +32,7 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
 
     private RecyclerView deviceList;
     private DeviceAdapter adapter;
-    private boolean labelPrint = true;
+    private boolean labelPrint = false;
     //
     private BluetoothPrinterManager bluetoothPrinter;
     private RecyclerView bluetoothDeviceList;
@@ -55,6 +59,12 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
         initUsb(null);
         //蓝牙
         initBluetooth();
+        //
+        List<DeviceModel> netPort = new ArrayList<>();
+        DeviceModel deviceModel = new DeviceModel();
+        deviceModel.setIp("192.168.240.200");
+        netPort.add(deviceModel);
+        NetPortPrintManger.getInstance().init(netPort, null);
     }
 
     public void initBluetooth() {
@@ -72,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
                 CusDialog cusDialog = new CusDialog(MainActivity.this, new CusDialog.OnItemClickListener() {
                     @Override
                     public void onCancelBond() {
-                        bluetoothPrinter.cancelBondDevice(deviceModel, new BluetoothBondListener() {
+                        bluetoothPrinter.cancelBondDevice(deviceModel.getBluetoothDevice(), new BluetoothBondListener() {
                             @Override
                             public void onBondFinishListener(boolean isBonded) {
                                 refreshBondedList();
@@ -82,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
 
                     @Override
                     public void onConnectDevice() {
-                        bluetoothPrinter.connectDevice(deviceModel, new BluetoothConnectListener() {
+                        bluetoothPrinter.connectDevice(deviceModel.getBluetoothDevice(), new BluetoothConnectListener() {
                             @Override
                             public void onFinishConnectListener(boolean isConnect) {
                                 if (isConnect) {
@@ -103,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
 
                     @Override
                     public void onCancelConnectDevice() {
-                        bluetoothPrinter.closeConnectDevice(deviceModel);
+                        bluetoothPrinter.closeConnectDevice(deviceModel.getBluetoothDevice());
                         refreshBondedList();
                     }
 
@@ -124,14 +134,61 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
         bluetoothAdapter.setOnItemClickListener(new BluetoothDeviceAdapter.OnItemClickListener() {
             @Override
             public void onItemClickListener(DeviceModel deviceModel, int p) {
-                bluetoothPrinter.bondDevice(deviceModel, new BluetoothBondListener() {
+//                bluetoothPrinter.bondDevice(deviceModel, new BluetoothBondListener() {
+//                    @Override
+//                    public void onBondFinishListener(boolean isBonded) {
+//                        refreshBondedList();
+//                    }
+//                });
+                Log.i("物理地址：", "" + deviceModel.getBluetoothDevice().getAddress());
+                bluetoothPrinter.connectDevice(deviceModel.getBluetoothDevice().getAddress(), new BluetoothConnectListener() {
                     @Override
-                    public void onBondFinishListener(boolean isBonded) {
-                        refreshBondedList();
+                    public void onFinishConnectListener(boolean isConnect) {
+                        Log.i("连接结果：", "" + isConnect);
                     }
                 });
             }
         });
+    }
+
+
+    /**
+     * 打开网口打印机
+     *
+     * @param view
+     */
+    public void connectNetPrint(View view) {
+//        NetPortPrintManger.getInstance().print(TicketPrint.testCmd(), null);
+        DeviceModel deviceModel = new DeviceModel("192.168.241.100", "hou");
+        NetPortPrintManger.getInstance().connect(deviceModel, new NetPortPrintListener() {
+            @Override
+            public void connectFinish(boolean isConnect, String ip) {
+                if (isConnect) {
+                    Log.i("连接", "陈宫");
+                } else {
+                    Log.i("连接", "失败");
+                }
+            }
+
+            @Override
+            public void printFinish(boolean isSuccess) {
+
+            }
+
+            @Override
+            public void closeFinish(String ip) {
+
+            }
+        });
+    }
+
+    /**
+     * 关闭网口打印机
+     *
+     * @param view
+     */
+    public void closeNetPrint(View view) {
+        NetPortPrintManger.getInstance().closeAll(null);
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.moria.lib.printer.interfaces;
+package com.moria.lib.printer.usb.interfaces;
 
 /**
  * Author  moria

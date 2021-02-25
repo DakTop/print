@@ -1,4 +1,4 @@
-package com.moria.lib.printer.helper;
+package com.moria.lib.printer.usb;
 
 import android.content.Context;
 import android.hardware.usb.UsbConstants;
@@ -13,7 +13,7 @@ import android.os.Looper;
 import android.os.Message;
 
 import com.moria.lib.printer.bean.DeviceModel;
-import com.moria.lib.printer.interfaces.IPrintingListener;
+import com.moria.lib.printer.usb.interfaces.IPrintingListener;
 
 import java.lang.ref.WeakReference;
 

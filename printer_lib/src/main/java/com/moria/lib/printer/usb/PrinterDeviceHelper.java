@@ -1,4 +1,4 @@
-package com.moria.lib.printer.helper;
+package com.moria.lib.printer.usb;
 
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;

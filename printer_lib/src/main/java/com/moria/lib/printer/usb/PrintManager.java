@@ -1,4 +1,4 @@
-package com.moria.lib.printer;
+package com.moria.lib.printer.usb;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -6,11 +6,9 @@ import android.text.TextUtils;
 import androidx.annotation.WorkerThread;
 
 import com.moria.lib.printer.bean.DeviceModel;
-import com.moria.lib.printer.helper.UsbAttachDetachReceiver;
-import com.moria.lib.printer.helper.UsbPrinter;
-import com.moria.lib.printer.interfaces.IPrintingListener;
-import com.moria.lib.printer.interfaces.IRequestOncePermissionFinish;
-import com.moria.lib.printer.interfaces.IUsbDeviceRefreshListener;
+import com.moria.lib.printer.usb.interfaces.IPrintingListener;
+import com.moria.lib.printer.usb.interfaces.IRequestOncePermissionFinish;
+import com.moria.lib.printer.usb.interfaces.IUsbDeviceRefreshListener;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;

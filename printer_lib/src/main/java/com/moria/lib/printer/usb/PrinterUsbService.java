@@ -1,11 +1,10 @@
-package com.moria.lib.printer;
+package com.moria.lib.printer.usb;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbInterface;
@@ -17,8 +16,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.moria.lib.printer.bean.DeviceModel;
-import com.moria.lib.printer.helper.PrinterDeviceHelper;
-import com.moria.lib.printer.interfaces.IRequestOncePermissionFinish;
+import com.moria.lib.printer.usb.interfaces.IRequestOncePermissionFinish;
 
 import java.util.ArrayList;
 import java.util.HashMap;

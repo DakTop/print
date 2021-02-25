@@ -240,36 +240,36 @@ public class EscCmd {
      * 默认字体大小
      */
     public void setFontDefault() {
-        byteList.add(FS);
+        byteList.add(GS);
         byteList.add((byte) 33);
         byteList.add((byte) 0);
     }
 
     /**
-     * 倍高 8
+     * 倍高
      */
     public void setFontDoubleHeight() {
-        byteList.add(FS);
+        byteList.add(GS);
         byteList.add((byte) 33);
-        byteList.add((byte) 8);
+        byteList.add((byte) 1);
     }
 
     /**
-     * 倍宽 4
+     * 倍宽
      */
     public void setFontDoubleWith() {
-        byteList.add(FS);
+        byteList.add(GS);
         byteList.add((byte) 33);
-        byteList.add((byte) 4);
+        byteList.add((byte) 16);
     }
 
     /**
-     * 双倍大 12（倍高与倍宽相加）
+     * 双倍大
      */
     public void setFontDouble() {
-        byteList.add(FS);
+        byteList.add(GS);
         byteList.add((byte) 33);
-        byteList.add((byte) 12);
+        byteList.add((byte) 17);
     }
 
     public void setBold() {

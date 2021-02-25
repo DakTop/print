@@ -44,10 +44,11 @@ public class BluetoothPrinterService {
     public void bondDevice(BluetoothDevice device) {
         //在配对之前，停止搜索
         cancelDiscovery();
-        if (device.getBondState() != BluetoothDevice.BOND_BONDED) {//没配对才配对
+        if (device != null && device.getBondState() != BluetoothDevice.BOND_BONDED) {//没配对才配对
             device.createBond();
         }
     }
+
 
     /**
      * 取消配对（取消配对成功与失败通过广播返回 也就是配对失败）
@@ -55,6 +56,8 @@ public class BluetoothPrinterService {
      * @param device
      */
     public void cancelBondDevice(BluetoothDevice device) {
+        if (device == null)
+            return;
         cancelDiscovery();
         try {
             Method removeBondMethod = device.getClass().getMethod("removeBond");
@@ -63,6 +66,22 @@ public class BluetoothPrinterService {
             e.printStackTrace();
         }
     }
+
+
+    /**
+     * 蓝牙设备是否正在绑定
+     */
+    public boolean isBonding(BluetoothDevice device) {
+        return device != null && device.getBondState() == BluetoothDevice.BOND_BONDING;
+    }
+
+    /**
+     * 蓝牙设备是否已经绑定
+     */
+    public boolean isBonded(BluetoothDevice device) {
+        return device != null && device.getBondState() == BluetoothDevice.BOND_BONDED;
+    }
+
 
     /**
      * 连接设备，回调监听方法是在子线程中进行的
@@ -103,6 +122,15 @@ public class BluetoothPrinterService {
             bondedList.addAll(mBluetoothAdapter.getBondedDevices());
         }
         return bondedList;
+    }
+
+    /**
+     * 生成设备
+     *
+     * @param macAddress
+     */
+    public BluetoothDevice obtainDevice(String macAddress) {
+        return BluetoothAdapter.getDefaultAdapter().getRemoteDevice(macAddress);
     }
 
 }
