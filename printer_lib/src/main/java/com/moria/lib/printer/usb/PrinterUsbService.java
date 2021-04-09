@@ -241,4 +241,8 @@ public class PrinterUsbService {
         void onCallback(List<DeviceModel> deviceModelList, List<DeviceModel> deviceWaitList);
 
     }
+
+    protected boolean hasPermission(UsbDevice device){
+        return mUsbManager.hasPermission(device);
+    }
 }

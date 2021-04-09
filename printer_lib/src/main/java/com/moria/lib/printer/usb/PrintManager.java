@@ -41,6 +41,10 @@ public class PrintManager {
         return instance;
     }
 
+    private PrintManager() {
+
+    }
+
     /**
      * 全局初始化, 通过全局初始化UsbDeviceManager监听usb设备的插拔, 并自动更新设备列表
      */
@@ -166,4 +170,20 @@ public class PrintManager {
         usbDeviceRefreshListeners.clear();
     }
 
+    public boolean hasPermission(DeviceModel deviceModel) {
+        if (usbService == null || deviceModel == null || deviceModel.getUsbDevice() == null) {
+            return false;
+        }
+        return usbService.hasPermission(deviceModel.getUsbDevice());
+    }
+
+    public void requestPermission(final DeviceModel deviceModel, final IRequestOncePermissionFinish listener) {
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                usbService.requestPermission(deviceModel, listener);
+            }
+        }.start();
+    }
 }

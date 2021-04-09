@@ -248,20 +248,24 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
         } else {
             cmds = TicketPrint.testCmd();
         }
-
-        PrintManager.getInstance().print(deviceModel, cmds, new PrintingListenerAdapter() {
-            @Override
-            public void printSuccess() {
-                super.printSuccess();
-                Toast.makeText(MainActivity.this, "打印成功", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void printFailure(String msg) {
-                super.printFailure(msg);
-                Toast.makeText(MainActivity.this, "打印失败", Toast.LENGTH_SHORT).show();
-            }
-        });
+        if (PrintManager.getInstance().hasPermission(deviceModel)) {
+            Toast.makeText(this, "列表", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "列表2", Toast.LENGTH_SHORT).show();
+        }
+//        PrintManager.getInstance().print(deviceModel, cmds, new PrintingListenerAdapter() {
+//            @Override
+//            public void printSuccess() {
+//                super.printSuccess();
+//                Toast.makeText(MainActivity.this, "打印成功", Toast.LENGTH_SHORT).show();
+//            }
+//
+//            @Override
+//            public void printFailure(String msg) {
+//                super.printFailure(msg);
+//                Toast.makeText(MainActivity.this, "打印失败", Toast.LENGTH_SHORT).show();
+//            }
+//        });
     }
 
     public void refreshBondedList() {
