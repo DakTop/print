@@ -32,25 +32,31 @@ public class NetPortPrintManger {
         return instance;
     }
 
-    public void init(final List<DeviceModel> list, final NetPortPrintListener serviceListener) {
+    private NetPortPrintManger() {
+        printService = new NetPortPrintService();
+        threadPool = Executors.newFixedThreadPool(1);
+    }
+
+    public void initConnect(final List<DeviceModel> list, final NetPortPrintListener serviceListener) {
         if (list == null)
             return;
         threadPool.submit(new Runnable() {
             @Override
             public void run() {
                 printService.setServiceListener(serviceListener);
-                List<String> ipList = new ArrayList<>();
-                for (int i = 0; i < list.size(); i++) {
-                    ipList.add(list.get(i).getIp());
-                }
-                printService.init(ipList);
+                printService.closeAll();
             }
         });
-    }
-
-    private NetPortPrintManger() {
-        printService = new NetPortPrintService();
-        threadPool = Executors.newFixedThreadPool(1);
+        for (int i = 0; i < list.size(); i++) {
+            final String ip = list.get(i).getIp();
+            threadPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    printService.setServiceListener(serviceListener);
+                    printService.open(ip);
+                }
+            });
+        }
     }
 
     /**
@@ -66,6 +72,13 @@ public class NetPortPrintManger {
             @Override
             public void run() {
                 printService.setServiceListener(serviceListener);
+                printService.close(deviceModel.getIp());
+            }
+        });
+        threadPool.submit(new Runnable() {
+            @Override
+            public void run() {
+                printService.setServiceListener(serviceListener);
                 printService.open(deviceModel.getIp());
             }
         });
@@ -76,17 +89,20 @@ public class NetPortPrintManger {
      *
      * @param data
      */
-    public void print(final byte[] data, final NetPortPrintListener serviceListener) {
-        if (data == null) {
+    public void print(final byte[] data, List<DeviceModel> deviceList, final NetPortPrintListener serviceListener) {
+        if (data == null || deviceList == null) {
             return;
         }
-        threadPool.submit(new Runnable() {
-            @Override
-            public void run() {
-                printService.setServiceListener(serviceListener);
-                printService.print(data);
-            }
-        });
+        for (int i = 0; i < deviceList.size(); i++) {
+            final DeviceModel deviceModel = deviceList.get(i);
+            threadPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    printService.setServiceListener(serviceListener);
+                    printService.print(data, deviceModel.getIp());
+                }
+            });
+        }
     }
 
     /**
@@ -105,7 +121,27 @@ public class NetPortPrintManger {
                 printService.print(data, deviceModel.getIp());
             }
         });
+    }
 
+    /**
+     * 自动连接网口打印机打印
+     *
+     * @param data
+     */
+    public void autoConnectPrint(final byte[] data, final DeviceModel deviceModel, final NetPortPrintListener serviceListener) {
+        if (data == null || deviceModel == null) {
+            return;
+        }
+        if (!isConnect(deviceModel)) {
+            connect(deviceModel, serviceListener);
+        }
+        threadPool.submit(new Runnable() {
+            @Override
+            public void run() {
+                printService.setServiceListener(serviceListener);
+                printService.print(data, deviceModel.getIp());
+            }
+        });
     }
 
     /**

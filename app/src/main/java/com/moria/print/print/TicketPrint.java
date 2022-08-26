@@ -58,4 +58,21 @@ public class TicketPrint {
         escCmd.openCashBox();
         return escCmd.build();
     }
+
+
+    /**
+     * 打印检测
+     *
+     * @return
+     */
+    public static byte[] buildTextPrintData() {
+        EscCmd escCmd = new EscCmd();
+        escCmd.addTxtBreak("打印检测");
+        escCmd.setFontDefault();
+        escCmd.addStrokeLine();
+        escCmd.addPrintEmptyLine(2);
+        escCmd.feedPaperCutAll();
+        return escCmd.build();
+    }
+
 }

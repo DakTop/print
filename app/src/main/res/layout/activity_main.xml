@@ -55,6 +55,12 @@
             android:onClick="closeNetPrint"
             android:text="关闭网口打印机" />
 
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="printNetPrint"
+            android:text="打印" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

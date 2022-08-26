@@ -32,12 +32,6 @@ public class NetPortPrintService {
         handler = new PrintHandler(Looper.getMainLooper());
     }
 
-    public void init(List<String> ipList) {
-        for (int i = 0; i < ipList.size(); i++) {
-            open(ipList.get(i));
-        }
-    }
-
     // 网络打印机 打开网络打印机
     public void open(String ip) {
         boolean connectFlag = false;
@@ -105,12 +99,6 @@ public class NetPortPrintService {
     public void closeAll() {
         for (String sock : map.keySet()) {
             close(sock);
-        }
-    }
-
-    public void print(byte[] data) {
-        for (Socket sock : map.values()) {
-            print(sock, data);
         }
     }
 
@@ -188,7 +176,24 @@ public class NetPortPrintService {
         if (TextUtils.isEmpty(ip))
             return false;
         Socket sock = map.get(ip);
-        return sock != null && sock.isConnected() && !sock.isOutputShutdown() && !sock.isClosed();
+        if (sock == null)
+            return false;
+        OutputStream outputStream = null;
+        try {
+            outputStream = sock.getOutputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        if (!sock.isConnected() || sock.isOutputShutdown() || sock.isClosed() || outputStream == null) {
+            return false;
+        }
+        try {
+            sock.sendUrgentData(0xFF);
+        } catch (Exception ex) {
+            return false;
+        }
+        return true;
     }
 
 }

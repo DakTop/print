@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
 
     private RecyclerView deviceList;
     private DeviceAdapter adapter;
-    private boolean labelPrint = false;
+    private boolean labelPrint = true;
     //
     private BluetoothPrinterManager bluetoothPrinter;
     private RecyclerView bluetoothDeviceList;
@@ -40,31 +40,57 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
     private RecyclerView bondedBluetoothDeviceList;
     private BluetoothDeviceAdapter bondedBluetoothAdapter;
 
+    private DeviceModel deviceModel_221;
+    private DeviceModel deviceModel_212;
+    private List<DeviceModel> netPort;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        deviceList = findViewById(R.id.deviceList);
-        deviceList.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new DeviceAdapter(this);
-        adapter.setOnItemClickListener(this);
-        deviceList.setAdapter(adapter);
-        PrintManager.getInstance().init(this);
-        PrintManager.getInstance().registerUsbDeviceListener(new IUsbDeviceRefreshListener() {
+//        deviceList = findViewById(R.id.deviceList);
+//        deviceList.setLayoutManager(new LinearLayoutManager(this));
+//        adapter = new DeviceAdapter(this);
+//        adapter.setOnItemClickListener(this);
+//        deviceList.setAdapter(adapter);
+//        PrintManager.getInstance().init(this);
+//        PrintManager.getInstance().registerUsbDeviceListener(new IUsbDeviceRefreshListener() {
+//            @Override
+//            public void onCallback() {
+//                adapter.refreshData(PrintManager.getInstance().getPrintDevice());
+//            }
+//        });
+//        initUsb(null);
+        //蓝牙
+//        initBluetooth();
+        //
+        netPort = new ArrayList<>();
+        deviceModel_212 = new DeviceModel();
+        deviceModel_212.setIp("192.168.5.212");
+        netPort.add(deviceModel_212);
+        deviceModel_221 = new DeviceModel();
+        deviceModel_221.setIp("192.168.5.221");
+        netPort.add(deviceModel_221);
+        NetPortPrintManger.getInstance().initConnect(netPort, new NetPortPrintListener() {
             @Override
-            public void onCallback() {
-                adapter.refreshData(PrintManager.getInstance().getPrintDevice());
+            public void connectFinish(boolean isConnect, String ip) {
+                Log.i("连接结果：", isConnect + "_" + ip);
+                for (int i = 0; i < netPort.size(); i++) {
+                    DeviceModel deviceModel = netPort.get(i);
+                    NetPortPrintManger.getInstance().autoConnectPrint(TicketPrint.buildTextPrintData(),deviceModel, null);
+                }
+            }
+
+            @Override
+            public void printFinish(boolean isSuccess) {
+
+            }
+
+            @Override
+            public void closeFinish(String ip) {
+
             }
         });
-        initUsb(null);
-        //蓝牙
-        initBluetooth();
-        //
-        List<DeviceModel> netPort = new ArrayList<>();
-        DeviceModel deviceModel = new DeviceModel();
-        deviceModel.setIp("192.168.240.200");
-        netPort.add(deviceModel);
-        NetPortPrintManger.getInstance().init(netPort, null);
     }
 
     public void initBluetooth() {
@@ -153,14 +179,41 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
 
 
     /**
+     * 打印网口打印机
+     *
+     * @param view
+     */
+    public void printNetPrint(View view) {
+        for (int i = 0; i < netPort.size(); i++) {
+            DeviceModel deviceModel = netPort.get(i);
+            NetPortPrintManger.getInstance().autoConnectPrint(TicketPrint.buildTextPrintData(),deviceModel, null);
+        }
+//        NetPortPrintManger.getInstance().print(TicketPrint.buildTextPrintData(), new NetPortPrintListener() {
+//            @Override
+//            public void connectFinish(boolean isConnect, String ip) {
+//
+//            }
+//
+//            @Override
+//            public void printFinish(boolean isSuccess) {
+//                Log.i("打印", isSuccess + "");
+//            }
+//
+//            @Override
+//            public void closeFinish(String ip) {
+//
+//            }
+//        });
+    }
+
+    /**
      * 打开网口打印机
      *
      * @param view
      */
     public void connectNetPrint(View view) {
-//        NetPortPrintManger.getInstance().print(TicketPrint.testCmd(), null);
-        DeviceModel deviceModel = new DeviceModel("192.168.241.100", "hou");
-        NetPortPrintManger.getInstance().connect(deviceModel, new NetPortPrintListener() {
+
+        NetPortPrintManger.getInstance().connect(deviceModel_212, new NetPortPrintListener() {
             @Override
             public void connectFinish(boolean isConnect, String ip) {
                 if (isConnect) {
@@ -248,24 +301,20 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
         } else {
             cmds = TicketPrint.testCmd();
         }
-        if (PrintManager.getInstance().hasPermission(deviceModel)) {
-            Toast.makeText(this, "列表", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(this, "列表2", Toast.LENGTH_SHORT).show();
-        }
-//        PrintManager.getInstance().print(deviceModel, cmds, new PrintingListenerAdapter() {
-//            @Override
-//            public void printSuccess() {
-//                super.printSuccess();
-//                Toast.makeText(MainActivity.this, "打印成功", Toast.LENGTH_SHORT).show();
-//            }
-//
-//            @Override
-//            public void printFailure(String msg) {
-//                super.printFailure(msg);
-//                Toast.makeText(MainActivity.this, "打印失败", Toast.LENGTH_SHORT).show();
-//            }
-//        });
+
+        PrintManager.getInstance().print(deviceModel, cmds, new PrintingListenerAdapter() {
+            @Override
+            public void printSuccess() {
+                super.printSuccess();
+                Toast.makeText(MainActivity.this, "打印成功", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void printFailure(String msg) {
+                super.printFailure(msg);
+                Toast.makeText(MainActivity.this, "打印失败", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     public void refreshBondedList() {
