@@ -12,6 +12,8 @@ import com.moria.lib.printer.usb.interfaces.IUsbDeviceRefreshListener;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -29,6 +31,7 @@ public class PrintManager {
     private PrinterUsbService usbService;
     private Context mContext;
     private CopyOnWriteArrayList<IUsbDeviceRefreshListener> usbDeviceRefreshListeners = new CopyOnWriteArrayList<>();
+    private ExecutorService threadPool;
 
     public static PrintManager getInstance() {
         if (instance == null) {
@@ -42,7 +45,7 @@ public class PrintManager {
     }
 
     private PrintManager() {
-
+        threadPool = Executors.newFixedThreadPool(1);
     }
 
     /**
@@ -101,10 +104,9 @@ public class PrintManager {
      * @param listener
      */
     public void print(final DeviceModel deviceModel, final byte[] cmd, final IPrintingListener listener) {
-        new Thread() {
+        threadPool.submit(new Runnable() {
             @Override
             public void run() {
-                super.run();
                 final UsbPrinter usbPrinter = new UsbPrinter(mContext, deviceModel, listener);
                 usbService.requestPermission(deviceModel, new IRequestOncePermissionFinish() {
                     @Override
@@ -119,7 +121,7 @@ public class PrintManager {
                     }
                 });
             }
-        }.start();
+        });
     }
 
     public List<DeviceModel> getPrintDevice() {
@@ -178,12 +180,12 @@ public class PrintManager {
     }
 
     public void requestPermission(final DeviceModel deviceModel, final IRequestOncePermissionFinish listener) {
-        new Thread() {
+        threadPool.submit(new Runnable() {
             @Override
             public void run() {
-                super.run();
                 usbService.requestPermission(deviceModel, listener);
             }
-        }.start();
+        });
+
     }
 }
