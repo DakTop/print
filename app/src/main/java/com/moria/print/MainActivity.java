@@ -48,49 +48,49 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        deviceList = findViewById(R.id.deviceList);
-//        deviceList.setLayoutManager(new LinearLayoutManager(this));
-//        adapter = new DeviceAdapter(this);
-//        adapter.setOnItemClickListener(this);
-//        deviceList.setAdapter(adapter);
-//        PrintManager.getInstance().init(this);
-//        PrintManager.getInstance().registerUsbDeviceListener(new IUsbDeviceRefreshListener() {
-//            @Override
-//            public void onCallback() {
-//                adapter.refreshData(PrintManager.getInstance().getPrintDevice());
-//            }
-//        });
-//        initUsb(null);
+        deviceList = findViewById(R.id.deviceList);
+        deviceList.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new DeviceAdapter(this);
+        adapter.setOnItemClickListener(this);
+        deviceList.setAdapter(adapter);
+        PrintManager.getInstance().init(this);
+        PrintManager.getInstance().registerUsbDeviceListener(new IUsbDeviceRefreshListener() {
+            @Override
+            public void onCallback() {
+                adapter.refreshData(PrintManager.getInstance().getPrintDevice());
+            }
+        });
+        initUsb(null);
         //蓝牙
 //        initBluetooth();
         //
-        netPort = new ArrayList<>();
-        deviceModel_212 = new DeviceModel();
-        deviceModel_212.setIp("192.168.5.212");
-        netPort.add(deviceModel_212);
-        deviceModel_221 = new DeviceModel();
-        deviceModel_221.setIp("192.168.5.221");
-        netPort.add(deviceModel_221);
-        NetPortPrintManger.getInstance().initConnect(netPort, new NetPortPrintListener() {
-            @Override
-            public void connectFinish(boolean isConnect, String ip) {
-                Log.i("连接结果：", isConnect + "_" + ip);
-                for (int i = 0; i < netPort.size(); i++) {
-                    DeviceModel deviceModel = netPort.get(i);
-                    NetPortPrintManger.getInstance().autoConnectPrint(TicketPrint.buildTextPrintData(),deviceModel, null);
-                }
-            }
-
-            @Override
-            public void printFinish(boolean isSuccess) {
-
-            }
-
-            @Override
-            public void closeFinish(String ip) {
-
-            }
-        });
+//        netPort = new ArrayList<>();
+//        deviceModel_212 = new DeviceModel();
+//        deviceModel_212.setIp("192.168.5.212");
+//        netPort.add(deviceModel_212);
+//        deviceModel_221 = new DeviceModel();
+//        deviceModel_221.setIp("192.168.5.221");
+//        netPort.add(deviceModel_221);
+//        NetPortPrintManger.getInstance().initConnect(netPort, new NetPortPrintListener() {
+//            @Override
+//            public void connectFinish(boolean isConnect, String ip) {
+//                Log.i("连接结果：", isConnect + "_" + ip);
+//                for (int i = 0; i < netPort.size(); i++) {
+//                    DeviceModel deviceModel = netPort.get(i);
+//                    NetPortPrintManger.getInstance().autoConnectPrint(TicketPrint.buildTextPrintData(),deviceModel, null);
+//                }
+//            }
+//
+//            @Override
+//            public void printFinish(boolean isSuccess) {
+//
+//            }
+//
+//            @Override
+//            public void closeFinish(String ip) {
+//
+//            }
+//        });
     }
 
     public void initBluetooth() {
@@ -325,4 +325,9 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnI
         bluetoothAdapter.refreshData(bluetoothPrinter.getDeviceList());
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        PrintManager.getInstance().unRegisterAllUsbDeviceListener();
+    }
 }

@@ -2,6 +2,7 @@ package com.moria.lib.printer.usb;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
 import androidx.annotation.WorkerThread;
 
@@ -26,7 +27,6 @@ public class PrintManager {
     private static PrintManager instance;
     private AtomicBoolean isInit = new AtomicBoolean(false);
     private UsbAttachDetachReceiver mUsbReceiver;
-    private AtomicBoolean lockObject = new AtomicBoolean(false);
     private boolean isWait = false;
     private PrinterUsbService usbService;
     private Context mContext;
@@ -65,15 +65,13 @@ public class PrintManager {
      * 异步刷新所有的usb设备列表
      */
     public void asyncRefreshAllDevice() {
-        new Thread() {
+        if (isWait) {
+            return;
+        }
+        isWait = true;
+        threadPool.submit(new Runnable() {
             @Override
             public void run() {
-                super.run();
-                waitRefreshList("refreshAllDevice");
-                // 设置开始访问
-                if (!lockObject.compareAndSet(false, true)) {
-                    return; // 已经正在刷新
-                }
                 if (usbService == null) {
                     usbService = new PrinterUsbService(mContext);
                 } else {
@@ -84,16 +82,11 @@ public class PrintManager {
                     public void onCallback(List<DeviceModel> deviceModelList, List<DeviceModel> deviceWaitList) {
                         notifyUsbDeviceListener();
                         // 设置访问结束
-                        if (lockObject.compareAndSet(true, false)) {
-                            if (isWait) {
-                                lockObject.notifyAll(); // 如果有等待的就刷新
-                                isWait = false;
-                            }
-                        }
+                        isWait = false;
                     }
                 }, PrinterUsbService.DEFAULT_TIME_OUT);
             }
-        }.start();
+        });
     }
 
     /**
@@ -127,19 +120,6 @@ public class PrintManager {
     public List<DeviceModel> getPrintDevice() {
         return usbService.getAllDeviceModel();
     }
-
-    @WorkerThread
-    private synchronized void waitRefreshList(String caller) {
-        if (lockObject.compareAndSet(true, true)) {
-            try {
-                isWait = true;
-                lockObject.wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
 
     /**
      * 退出应用时销毁占用的资源

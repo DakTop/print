@@ -46,10 +46,10 @@ public class DeviceAdapter extends RecyclerView.Adapter<DeviceAdapter.ViewHolder
     }
 
     public void refreshData(List<DeviceModel> mList) {
-        if (mList == null || mList.size() == 0)
-            return;
         list.clear();
-        list.addAll(mList);
+        if (mList != null) {
+            list.addAll(mList);
+        }
         notifyDataSetChanged();
     }
 
