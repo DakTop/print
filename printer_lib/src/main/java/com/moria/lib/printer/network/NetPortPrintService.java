@@ -5,16 +5,22 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.moria.lib.printer.network.interfaces.NetPortPrintListener;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,115 +28,79 @@ import java.util.Map;
 public class NetPortPrintService {
     private static final int ConnectFinish = 0;
     private static final int PrintFinish = 1;
-    private static final int CloseFinish = 2;
-    private NetPortPrintListener serviceListener;
-    private Map<String, Socket> map;
     private PrintHandler handler;
 
     public NetPortPrintService() {
-        map = new HashMap<>();
         handler = new PrintHandler(Looper.getMainLooper());
     }
 
-    // 网络打印机 打开网络打印机
-    public void open(String ip) {
-        boolean connectFlag = false;
-        Socket sock = map.get(ip);
-        if (sock == null) {
-            sock = new Socket();
-        }
+    public void print(String ip, byte[] data) {
+        boolean isPrintSuccess = false;
+        boolean isConnectSuccess = true;
+        Socket sock = new Socket();
+        OutputStream outputStream = null;
         try {
             //sock.getOutputStream()返回不为空说明有输出流，此时才能向网口打印机传输数据
-            if (!sock.isConnected() || !sock.isClosed() || sock.getOutputStream() == null) {
-                InetAddress mIPAddress =
-                        Inet4Address.getByName(ip);
-                SocketAddress remoteAddr = new InetSocketAddress(
-                        mIPAddress,
-                        9100);
-
-                sock.connect(remoteAddr, 4000);
-                if (sock.getOutputStream() != null) {
-                    map.put(ip, sock);
-                    connectFlag = true;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            Message msg = new Message();
-            msg.what = ConnectFinish;
-            Bundle bundle = new Bundle();
-            bundle.putBoolean("connect", connectFlag);
-            bundle.putString("ip", ip);
-            msg.setData(bundle);
-            handler.sendMessage(msg);
-        }
-    }
-
-    // 网络打印机 关闭
-    public void close(String ip) {
-        Socket sock = map.get(ip);
-        if (sock != null) {
-            close(ip, sock);
-        }
-    }
-
-    private void close(String ip, Socket sock) {
-        try {
-            if (sock.getOutputStream() != null) {
-                sock.getOutputStream().flush();
-            }
-            sock.shutdownOutput();
-            sock.close();
-            map.remove(ip);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            Message msg = new Message();
-            msg.what = CloseFinish;
-            Bundle bundle = new Bundle();
-            bundle.putString("ip", ip);
-            msg.setData(bundle);
-            handler.sendMessage(msg);
-        }
-    }
-
-    // 网络打印机 关闭
-    public void closeAll() {
-        for (String sock : map.keySet()) {
-            close(sock);
-        }
-    }
-
-    public void print(byte[] data, String ip) {
-        Socket sock = map.get(ip);
-        if (sock != null) {
-            print(sock, data);
-        } else {
-            open(ip);
-            print(map.get(ip), data);
-        }
-    }
-
-    private void print(Socket sock, byte[] data) {
-        boolean printSuccess = false;
-        try {
-            if (sock != null && sock.isConnected() && !sock.isOutputShutdown()) {
-                OutputStream outputStream = sock.getOutputStream();
+            InetAddress mIPAddress =
+                    Inet4Address.getByName(ip);
+            SocketAddress remoteAddr = new InetSocketAddress(
+                    mIPAddress,
+                    9100);
+//            sock.setSoTimeout(4000);
+            sock.connect(remoteAddr, 1500);
+            outputStream = sock.getOutputStream();
+            if (outputStream != null) {
                 outputStream.write(data);
                 outputStream.flush();
-                printSuccess = true;
+                sock.shutdownOutput();
+                isPrintSuccess = true;
+            } else {
+                isPrintSuccess = false;
             }
         } catch (Exception e) {
+            isPrintSuccess = false;
+            isConnectSuccess = false;
             e.printStackTrace();
         } finally {
-            Message msg = new Message();
-            msg.what = PrintFinish;
-            Bundle bundle = new Bundle();
-            bundle.putBoolean("print", printSuccess);
-            msg.setData(bundle);
-            handler.sendMessage(msg);
+            //3、关闭IO资源
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            try {
+                sock.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (isConnectSuccess) {
+                printFinish(ip, isPrintSuccess);
+            } else {
+                connectFail(ip);
+            }
         }
+    }
+
+    private void connectFail(String ip) {
+        Message msg = new Message();
+        msg.what = ConnectFinish;
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("connect", false);
+        bundle.putString("ip", ip);
+        msg.setData(bundle);
+        handler.sendMessage(msg);
+    }
+
+    private void printFinish(String ip, boolean printSuccess) {
+        Message msg = new Message();
+        msg.what = PrintFinish;
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("print", printSuccess);
+        bundle.putString("ip", ip);
+        msg.setData(bundle);
+        handler.sendMessage(msg);
     }
 
     public void setServiceListener(NetPortPrintListener serviceListener) {
@@ -153,16 +123,13 @@ public class NetPortPrintService {
                     if (serviceListener != null) {
                         serviceListener.connectFinish(bundle.getBoolean("connect"), bundle.getString("ip"));
                     }
+                    serviceListener = null;
                     break;
                 case PrintFinish:
                     if (serviceListener != null) {
-                        serviceListener.printFinish(bundle.getBoolean("print"));
+                        serviceListener.printFinish(bundle.getBoolean("print"), bundle.getString("ip"));
                     }
-                    break;
-                case CloseFinish:
-                    if (serviceListener != null) {
-                        serviceListener.closeFinish(bundle.getString("ip"));
-                    }
+                    serviceListener = null;
                     break;
             }
         }
@@ -171,29 +138,4 @@ public class NetPortPrintService {
             this.serviceListener = serviceListener;
         }
     }
-
-    public boolean isConnect(String ip) {
-        if (TextUtils.isEmpty(ip))
-            return false;
-        Socket sock = map.get(ip);
-        if (sock == null)
-            return false;
-        OutputStream outputStream = null;
-        try {
-            outputStream = sock.getOutputStream();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-        if (!sock.isConnected() || sock.isOutputShutdown() || sock.isClosed() || outputStream == null) {
-            return false;
-        }
-        try {
-            sock.sendUrgentData(0xFF);
-        } catch (Exception ex) {
-            return false;
-        }
-        return true;
-    }
-
 }

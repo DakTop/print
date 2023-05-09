@@ -88,27 +88,28 @@ public class LabelPrintDefaultModel extends LabelModel {
 
     private void addMyText(LabelCommand tsc, LabelPrintEntity productInfo) {
 
-        int nameLength = getBytesLength(productInfo.getGoodsName());
-        String firstLineName = "";
-        String secondLineName = "";
-        try {
-            if (nameLength > SMALL_FONT_SIZE_SINGLE_LINE_COUNT) {//有二行文字
-                firstLineName = PrinterHelper.getStrByByte(productInfo.getGoodsName(), SMALL_FONT_SIZE_SINGLE_LINE_COUNT);
-                secondLineName = productInfo.getGoodsName().substring(firstLineName.length());
-                //
-                addChineseText(tsc, productNameLineFirst, firstLineName);
-                addChineseText(tsc, productNameLineSecond, secondLineName);
-            } else {//有一行文字
-                if (nameLength > BIG_FONT_SIZE_SINGLE_LINE_COUNT) { //判断字符长度是否超多大字体单行所限制的字数
-                    addChineseText(tsc, shopProductNameSmallSingleLine, productInfo.getGoodsName());
-                } else {
-                    addChineseText(tsc, shopProductNameBigSingleLine, productInfo.getGoodsName(), LabelCommand.FONTMUL.MUL_2);
+        if (!TextUtils.isEmpty(productInfo.getGoodsName())) {
+            int nameLength = getBytesLength(productInfo.getGoodsName() + "");
+            String firstLineName = "";
+            String secondLineName = "";
+            try {
+                if (nameLength > SMALL_FONT_SIZE_SINGLE_LINE_COUNT) {//有二行文字
+                    firstLineName = PrinterHelper.getStrByByte(productInfo.getGoodsName(), SMALL_FONT_SIZE_SINGLE_LINE_COUNT);
+                    secondLineName = productInfo.getGoodsName().substring(firstLineName.length());
+                    //
+                    addChineseText(tsc, productNameLineFirst, firstLineName);
+                    addChineseText(tsc, productNameLineSecond, secondLineName);
+                } else {//有一行文字
+                    if (nameLength > BIG_FONT_SIZE_SINGLE_LINE_COUNT) { //判断字符长度是否超多大字体单行所限制的字数
+                        addChineseText(tsc, shopProductNameSmallSingleLine, productInfo.getGoodsName());
+                    } else {
+                        addChineseText(tsc, shopProductNameBigSingleLine, productInfo.getGoodsName(), LabelCommand.FONTMUL.MUL_2);
+                    }
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-
 
         if (!TextUtils.isEmpty(productInfo.getGoodsUnit())) {
             //unit.x = unit.x - 8;

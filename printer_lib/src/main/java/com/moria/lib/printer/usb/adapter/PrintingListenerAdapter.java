@@ -9,15 +9,6 @@ import com.moria.lib.printer.usb.interfaces.IPrintingListener;
  * Time    12:04
  */
 public class PrintingListenerAdapter implements IPrintingListener {
-    @Override
-    public void printSuccess() {
-
-    }
-
-    @Override
-    public void printFailure(String msg) {
-
-    }
 
     @Override
     public void connecting() {
@@ -30,14 +21,19 @@ public class PrintingListenerAdapter implements IPrintingListener {
     }
 
     @Override
-    public void printing() {
+    public void connectFailure(String msg) {
+
+    }
+
+
+    @Override
+    public void printSuccess() {
 
     }
 
     @Override
-    public void connectFailure(String msg) {
-        printFailure(msg);
-    }
+    public void printFailure(String msg) {
 
+    }
 
 }

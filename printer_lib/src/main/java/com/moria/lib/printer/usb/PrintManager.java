@@ -1,8 +1,11 @@
 package com.moria.lib.printer.usb;
 
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.WorkerThread;
 
@@ -55,6 +58,7 @@ public class PrintManager {
         mContext = context;
         // 仅当第一次调用的时候初始化, 如果多次调用且未返回前不用再次初始化
         if (isInit.compareAndSet(false, false)) {
+            usbService = new PrinterUsbService(mContext);
             mUsbReceiver = new UsbAttachDetachReceiver();
             mUsbReceiver.register(context);//注册usb插拔广播接收器
             isInit.compareAndSet(false, true);
@@ -72,19 +76,13 @@ public class PrintManager {
         threadPool.submit(new Runnable() {
             @Override
             public void run() {
-                if (usbService == null) {
-                    usbService = new PrinterUsbService(mContext);
-                } else {
-                    usbService.release();
-                }
                 usbService.initAllDeviceModels(new PrinterUsbService.DevicesCallback() {
                     @Override
-                    public void onCallback(List<DeviceModel> deviceModelList, List<DeviceModel> deviceWaitList) {
-                        notifyUsbDeviceListener();
-                        // 设置访问结束
+                    public void onCallback(List<DeviceModel> deviceModelList) {
                         isWait = false;
+                        notifyUsbDeviceListener();
                     }
-                }, PrinterUsbService.DEFAULT_TIME_OUT);
+                });
             }
         });
     }
@@ -97,22 +95,33 @@ public class PrintManager {
      * @param listener
      */
     public void print(final DeviceModel deviceModel, final byte[] cmd, final IPrintingListener listener) {
+        if (usbService.hasPermission(deviceModel.getUsbDevice())) {
+            toPrint(deviceModel, cmd, listener);
+        } else {
+            if (listener != null) {
+                listener.connecting();
+            }
+            usbService.requestPermission(deviceModel, new IRequestOncePermissionFinish() {
+                @Override
+                public void requestOncePermissionFinish(boolean success) {
+                    if (success) {
+                        toPrint(deviceModel, cmd, listener);
+                    } else {
+                        if (listener != null) {
+                            listener.connectFailure("授权失败");
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private void toPrint(final DeviceModel deviceModel, final byte[] cmd, final IPrintingListener listener) {
         threadPool.submit(new Runnable() {
             @Override
             public void run() {
                 final UsbPrinter usbPrinter = new UsbPrinter(mContext, deviceModel, listener);
-                usbService.requestPermission(deviceModel, new IRequestOncePermissionFinish() {
-                    @Override
-                    public void requestOncePermissionFinish(boolean success) {
-                        if (success) {
-                            if (TextUtils.isEmpty(deviceModel.getSerialNumber())) {
-                                String val = usbService.getSerialNumberWithPermission(deviceModel.getUsbDevice());
-                                deviceModel.setSerialNumber(val);
-                            }
-                            usbPrinter.printCmd(cmd);
-                        }
-                    }
-                });
+                usbPrinter.printCmd(cmd);
             }
         });
     }
@@ -125,13 +134,13 @@ public class PrintManager {
      * 退出应用时销毁占用的资源
      */
     public void destroy() {
-        if (mUsbReceiver != null) {
-            mUsbReceiver.unregister(mContext);
-        }
         if (usbService != null) {
             usbService.release();
         }
         unRegisterAllUsbDeviceListener();
+        if (mUsbReceiver != null) {
+            mUsbReceiver.unregister(mContext);
+        }
     }
 
     private void notifyUsbDeviceListener() {
@@ -160,12 +169,12 @@ public class PrintManager {
     }
 
     public void requestPermission(final DeviceModel deviceModel, final IRequestOncePermissionFinish listener) {
-        threadPool.submit(new Runnable() {
-            @Override
-            public void run() {
-                usbService.requestPermission(deviceModel, listener);
+        if (usbService.hasPermission(deviceModel.getUsbDevice())) {
+            if (listener != null) {
+                listener.requestOncePermissionFinish(true);
             }
-        });
-
+        } else {
+            usbService.requestPermission(deviceModel, listener);
+        }
     }
 }

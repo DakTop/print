@@ -45,6 +45,11 @@ public class DeviceAdapter extends RecyclerView.Adapter<DeviceAdapter.ViewHolder
         });
     }
 
+
+    public List<DeviceModel> getData() {
+        return list;
+    }
+
     public void refreshData(List<DeviceModel> mList) {
         list.clear();
         if (mList != null) {

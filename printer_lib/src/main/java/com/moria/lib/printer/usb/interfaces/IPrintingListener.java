@@ -8,6 +8,24 @@ package com.moria.lib.printer.usb.interfaces;
  */
 
 public interface IPrintingListener {
+
+    /**
+     * 授权进行中
+     */
+    void connecting();
+
+    /**
+     * 有权限连接成功, 然后开始打印
+     */
+    void connectSuccess();
+
+    /**
+     * 无权限, 连接失败
+     *
+     * @param msg
+     */
+    void connectFailure(String msg);
+
     /**
      * 打印成功
      */
@@ -19,28 +37,5 @@ public interface IPrintingListener {
      * @param msg
      */
     void printFailure(String msg);
-
-    /**
-     * 准备打开usb设备获取连接的Connection
-     */
-    void connecting();
-
-    /**
-     * 有权限连接成功, 然后开始打印
-     */
-    void connectSuccess();
-
-    /**
-     *
-     */
-    void printing();
-
-    /**
-     * 无权限, 连接失败
-     *
-     * @param msg
-     */
-    void connectFailure(String msg);
-
 
 }

@@ -19,7 +19,7 @@ import static com.moria.lib.printer.cmd.EscCmdConstants.SP;
  */
 public class EscCmd {
     //打印的字节数组
-    private List<Byte> byteList = new ArrayList<>();
+    public List<Byte> byteList = new ArrayList<>();
     private int totalWith = 48;
 
     public EscCmd() {
